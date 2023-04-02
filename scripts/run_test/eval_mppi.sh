@@ -1,4 +1,3 @@
-#!bin/bash
 embedding=$1
 camera=default
 kitchen_env=("ldoor_open" "micro_close" "micro_open" "rdoor_close" "sdoor_open")
