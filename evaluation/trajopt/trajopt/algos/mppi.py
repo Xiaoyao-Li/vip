@@ -79,8 +79,8 @@ class MPPI(Trajectory):
         self.sol_reward.append(r)
         self.sol_info.append(info)
 
-        if 'obs_embedding' in info:
-            self.sol_embedding.append(self.env.env.get_views(embedding=True))    
+        # if 'obs_embedding' in info:
+        #     self.sol_embedding.append(self.env.env.get_views(embedding=True))    
         
         # get updated action sequence
         if self.warmstart:

@@ -113,7 +113,7 @@ def gather_paths_parallel(env, start_state, base_act, filter_coefs, base_seed,
         input_dict_list.append(input_dict)
 
     results = _try_multiprocess(func=generate_paths, input_dict_list=input_dict_list,
-                                    num_cpu=num_cpu, max_process_time=2400, max_timeouts=4)
+                                num_cpu=num_cpu, max_process_time=2400, max_timeouts=4)
     paths = []
     for result in results:
         for path in result:

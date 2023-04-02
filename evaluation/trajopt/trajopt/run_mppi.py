@@ -17,6 +17,8 @@ import os
 import wandb
 from PIL import Image 
  
+import sys
+sys.path.append('/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/')
 from mj_envs.envs.env_variants import register_env_variant
 from trajopt.envs.obs_wrappers import env_constructor
 from trajopt.algos.mppi import MPPI
@@ -115,8 +117,8 @@ def configure_jobs(job_data):
                 os.makedirs(f"./{i}/{camera}", exist_ok=True)
                 frames = agent.animate_result_offscreen(camera_name=camera)
                 VID_FILE = OUT_DIR + f'/{i}/{i}_{job_data.embedding}_{camera}' + '.gif'
-                cl = ImageSequenceClip(frames, fps=20)
-                cl.write_gif(VID_FILE, fps=20)
+                cl = ImageSequenceClip(frames, fps=24)
+                cl.write_gif(VID_FILE, fps=24)
                 frames = np.array(frames)
                 for t2 in range(frames.shape[0]):
                     img = frames[t2]

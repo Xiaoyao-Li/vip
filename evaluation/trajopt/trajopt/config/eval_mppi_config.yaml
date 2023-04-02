@@ -1,0 +1,74 @@
+hydra:
+  run:
+    dir: ./
+  output_subdir: null
+
+default:
+    - _self_
+
+# output directory
+output_dir        :   outputs
+exp_name          :   default
+exp_dir           :   ${output_dir}/${now:%Y-%m-%d-%H-%M-%S}_${exp_name}
+vis_dir           :   ${exp_dir}/visual
+save_gifs         :   True
+
+# platform
+slurm             :   False
+
+# general inputs
+env               :   kitchen_sdoor_open-v3 
+task_type         :   "easy"            
+seed              :   [0, 1, 2, 3 ,4, 5, 6, 7, 8, 9]
+
+pixel_based       :   True                  # pixel based (True) or state based (False) experiment
+embedding_reward  :   True                   # whether or not to use embedding distance as reward
+embedding         :   vip                     # choice of embedding network
+camera            :   default                 # choice of camera to use for image generation, left_cam, right_cam,...
+device            :   cuda
+proprio           :   0
+
+# environment related kwargs
+env_kwargs:
+    env_name      :   ${env}                
+    device        :   ${device}               
+    image_width   :   256
+    image_height  :   256
+    camera_name   :   ${camera}
+    pixel_based   :   ${pixel_based}
+    render_gpu_id :   0                 
+    load_path     :   ""
+    proprio       :   ${proprio} 
+    embedding_reward: ${embedding_reward} 
+    goal_timestep : 49
+    init_timestep : 0
+    demo_basedir_local : '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/dataset'
+    demo_basedir_slurm : '/home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/dataset'
+    env_xml_path_local : '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml'
+    env_xml_path_slurm : '/home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml'
+    env_cfg_path_local : '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config'
+    env_cfg_path_slurm : '/home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config'
+
+# RL parameters (all params related to MPPI.)
+H_total           :       50
+num_traj          :       1
+num_iter          :       1
+plan_horizon      :       12 
+paths_per_cpu     :       32 
+num_cpu           :       1
+filter:
+    beta_0: 0.25
+    beta_1: 0.8
+    beta_2: 0.0   
+kappa             :       5.0
+gamma             :       0.98
+default_act       :       'mean'
+visualize         :       True
+
+
+# Algorithm hyperparameters : if alg requires additional params, can be specified here (or defaults will be used)
+alg_hyper_params  :   {'device': 'cpu'}
+
+# general outputs
+job_name          :   None
+experiment        :  "None"
