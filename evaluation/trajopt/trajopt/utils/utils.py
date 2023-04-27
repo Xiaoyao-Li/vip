@@ -71,6 +71,7 @@ def generate_perturbed_actions(base_act, filter_coefs):
     """
     sigma, beta_0, beta_1, beta_2 = filter_coefs
     eps = np.random.normal(loc=0, scale=1.0, size=base_act.shape) * sigma
+    # NOTE: do this to smooth sample action
     for i in range(2, eps.shape[0]):
         eps[i] = beta_0*eps[i] + beta_1*eps[i-1] + beta_2*eps[i-2]
     return base_act + eps
@@ -83,7 +84,7 @@ def generate_paths(env, start_state, N, base_act, filter_coefs,
     then do rollouts with generated actions
     set seed inside this function for multiprocessing
     """
-    np.random.seed(base_seed)
+    # np.random.seed(base_seed)
     act_list = []
     for i in range(N):
         act = generate_perturbed_actions(base_act, filter_coefs)
@@ -118,5 +119,5 @@ def gather_paths_parallel(env, start_state, base_act, filter_coefs, base_seed,
     for result in results:
         for path in result:
             paths.append(path)
-
+    
     return paths

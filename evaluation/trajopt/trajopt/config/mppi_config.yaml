@@ -4,7 +4,7 @@ default:
 
 # general inputs
 env               :   kitchen_sdoor_open-v3             
-seed              :   123
+seed              :   0
 
 pixel_based       :   True                  # pixel based (True) or state based (False) experiment
 embedding_reward  :   True                   # whether or not to use embedding distance as reward

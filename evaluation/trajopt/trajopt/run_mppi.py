@@ -22,7 +22,7 @@ sys.path.append('/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/')
 from mj_envs.envs.env_variants import register_env_variant
 from trajopt.envs.obs_wrappers import env_constructor
 from trajopt.algos.mppi import MPPI
-from trajopt import DEMO_PATHS
+# from trajopt import DEMO_PATHS
 
 
 @hydra.main(config_name="mppi_config", config_path="config")
@@ -46,6 +46,11 @@ def configure_jobs(job_data):
 
     # Construct environment 
     env_kwargs = job_data['env_kwargs']
+    OmegaConf.set_struct(env_kwargs, False)
+    env_kwargs['env_xml_path'] = '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml'
+    env_kwargs['env_cfg_path'] = '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config'
+    env_kwargs['demo_basedir'] = '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/dataset'
+    OmegaConf.set_struct(env_kwargs, True)
     env = env_constructor(**env_kwargs)
 
     mean = np.zeros(env.action_dim)
@@ -73,7 +78,7 @@ def configure_jobs(job_data):
                     default_act=job_data['default_act'],
                     seed=seed,
                     env_kwargs=env_kwargs)
-
+        
         # trajectory optimization
         distances = {}
         for camera in agent.env.env.cameras:
