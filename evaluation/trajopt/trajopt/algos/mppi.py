@@ -5,6 +5,7 @@ Uses a filtered action sequence to generate smooth motions.
 """
 
 import numpy as np
+import torch
 from mjrl.utils.logger import DataLog
 
 from trajopt.algos.trajopt_base import Trajectory
@@ -71,7 +72,7 @@ class MPPI(Trajectory):
         # accept first action and step
         action = act_sequence[0].copy()
         self.env.real_env_step(True)
-        s, r, _, info = self.env.step(action)
+        s, r, _, info, i_cam = self.env.step(action)
 
         self.sol_act.append(action)
         self.sol_state.append(self.env.get_env_state().copy())
@@ -114,6 +115,36 @@ class MPPI(Trajectory):
     def train_step(self, niter=1):
         t = len(self.sol_state) - 1
         for _ in range(niter):
-            paths = self.do_rollouts(self.seed+t)
+            paths = self.do_rollouts(self.seed + t)
+            # add imgs_camera to paths dict
+            # TODO: compute reward from imgs_camera with env.embedding
+            paths = self._compute_reward_with_batch(paths)
             self.update(paths)
         self.advance_time()
+
+    def _compute_reward_with_batch(self, paths):
+        # batch the imgs_camera and compute embeddings
+        imgs_camera = np.stack([paths[i]["imgs_camera"] for i in range(len(paths))], axis=0)
+        imgs_camera_shape = imgs_camera.shape
+        imgs_camera = imgs_camera.reshape(imgs_camera_shape[0]*imgs_camera_shape[1], *imgs_camera_shape[2:])
+        imgs_camera = torch.from_numpy(imgs_camera).float().to(self.env.env.device)
+        with torch.no_grad():
+            emb_camera = self.env.env.embedding(imgs_camera)
+            emb_camera = emb_camera.view(imgs_camera_shape[0]*imgs_camera_shape[1], self.env.env.embedding_dim)
+        assert self.env.env.proprio == 0, "not implemented for proprio != 0"
+        # from embeddings compute the reward with goal
+        # convert goal_emb to tensor
+        assert len(self.env.env.cameras) == 1, "not implemented for multiple cameras"
+        goal_emb = self.env.env.goal_embedding[self.env.env.cameras[0]]
+        goal_emb = torch.from_numpy(goal_emb).float().to(self.env.env.device)
+
+        rewards_camera = - torch.norm(emb_camera - goal_emb, dim=-1).to('cpu').numpy()
+        rewards_camera = rewards_camera.reshape(imgs_camera_shape[0], imgs_camera_shape[1])
+        
+        diff_sum = 0
+        for i in range(len(paths)):
+            # merge to one line print
+            diff_sum += np.linalg.norm(paths[i]["rewards"] - rewards_camera[i], axis=0)
+        print(f'average diff rewards diff of 32: {diff_sum / len(paths)}')
+
+        return paths

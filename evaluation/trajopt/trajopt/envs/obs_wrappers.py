@@ -212,6 +212,18 @@ class StateEmbedding(gym.ObservationWrapper):
                 goal_embedding = self.encode_batch(end_goals)
                 self.goal_embedding[camera] = goal_embedding.mean(axis=0) 
 
+    def _do_transforms(self, observation):
+        if self.embedding is not None and len(observation.shape) > 1:
+            if isinstance(observation, np.ndarray):
+                o = Image.fromarray(observation.astype(np.uint8))
+
+            inp = self.transforms(o).reshape(3, 224, 224)
+            if  "vip" in self.load_path or "r3m" in self.load_path:
+                inp *= 255.0
+            # inp = inp.to(self.device)
+        return np.array(inp)
+
+
     def observation(self, observation):
         ### INPUT SHOULD BE [0,255]
         if self.embedding is not None and len(observation.shape) > 1:
@@ -279,10 +291,10 @@ class StateEmbedding(gym.ObservationWrapper):
         self.start_finetune = True
     
     def step(self, action):
-        import time
-        st = time.time()
+        # import time
+        # st = time.time()
         observation, reward, done, info = self.env.step(action) 
-        logger.info(f'step: {time.time()-st}')
+        # logger.info(f'step: {time.time()-st}')
         # NOTE: can comment the following 2 lines to improve speed
         # obs_embedding = self.observation(observation)
         # info['obs_embedding'] = obs_embedding 
@@ -290,14 +302,16 @@ class StateEmbedding(gym.ObservationWrapper):
             rewards = []
             # Note: only single camera evaluation is supported 
             for camera in self.cameras:
-                st = time.time()
+                # st = time.time()
                 img_camera = self.env.get_image(camera_name=camera)
-                logger.info(f'render: {time.time()-st}')
+                # logger.info(f'render: {time.time()-st}')
                 obs_embedding_camera = self.observation(img_camera)
-                logger.info(f'net: {time.time()-st}')
+                # logger.info(f'net: {time.time()-st}')
                 obs_embedding_camera = obs_embedding_camera if self.proprio == 0 else obs_embedding_camera[:-self.proprio]
                 reward_camera = -np.linalg.norm(obs_embedding_camera-self.goal_embedding[camera])
                 rewards.append(reward_camera) 
+
+                img_camera = self._do_transforms(img_camera)
             # some state-based info for evaluating learned reward func.
             if 'end_effector' in info['obs_dict']:
                 info['obs_dict']['ee_error'] = np.linalg.norm(self.goal_end_effector-info['obs_dict']['end_effector'])
@@ -313,8 +327,8 @@ class StateEmbedding(gym.ObservationWrapper):
             state = self.env.unwrapped.get_obs()
         else: 
             state = np.zeros(self.embedding_dim)
-
-        return state, reward, done, info
+        
+        return state, reward, done, info, img_camera
     
     def reset(self):
         observation = self.env.reset()

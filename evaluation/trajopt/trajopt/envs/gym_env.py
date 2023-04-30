@@ -97,14 +97,14 @@ class GymEnv(object):
     def step(self, action):
         action = action.clip(self.action_space.low, self.action_space.high)
         if self.act_repeat == 1:
-            obs, cum_reward, done, ifo = self.env.step(action)
+            obs, cum_reward, done, ifo, img_camera = self.env.step(action)
         else:
             cum_reward = 0.0
             for i in range(self.act_repeat):
-                obs, reward, done, ifo = self.env.step(action)
+                obs, reward, done, ifo, img_camera = self.env.step(action)
                 cum_reward += reward
                 if done: break
-        return self.obs_mask * obs, cum_reward, done, ifo
+        return self.obs_mask * obs, cum_reward, done, ifo, img_camera
 
     def render(self):
         try:

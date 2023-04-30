@@ -33,22 +33,25 @@ def do_env_rollout(env, start_state, act_list, env_kwargs=None):
         rewards = []
         env_infos = []
         states = []
+        imgs_camera = []
 
         for k in range(H):
             obs.append(e.get_obs())
             act.append(act_list[i][k])
             env_infos.append(e.get_env_infos())
             states.append(e.get_env_state())
-            s, r, d, ifo = e.step(act[-1])
+            s, r, d, ifo, img_camera = e.step(act[-1])
             rewards.append(r)
+            imgs_camera.append(img_camera)
 
         path = dict(observations=np.array(obs),
                     actions=np.array(act),
                     rewards=np.array(rewards),
                     env_infos=tensor_utils.stack_tensor_dict_list(env_infos),
-                    states=states)
+                    states=states,
+                    imgs_camera=np.array(imgs_camera))
         paths.append(path)
-
+    
     return paths
 
 
