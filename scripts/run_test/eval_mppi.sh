@@ -9,7 +9,7 @@ do
     echo "embedding: ${embedding} | task: ${env}"
     python ./evaluation/trajopt/trajopt/eval_mppi.py \
         env=kitchen_${env}-v3 embedding=${embedding} camera=${camera} \
-        exp_name=${embedding}@${env}@${camera}@4-8
+        exp_name=${embedding}-agentago@${env}@${camera}@4-8
 done
 
 # embedding=("vip" "r3m" "clip")

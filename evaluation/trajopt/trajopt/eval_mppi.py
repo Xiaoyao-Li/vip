@@ -101,6 +101,7 @@ def main_worker(cfg: DictConfig):
 
         # reset mppi agent
         agent = MPPI(env,
+                     agent_ago=cfg.env_kwargs.agent_ago,
                      H=cfg['plan_horizon'],
                      paths_per_cpu=cfg['paths_per_cpu'],
                      num_cpu=cfg['num_cpu'],

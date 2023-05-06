@@ -18,7 +18,7 @@ slurm             :   False
 
 # general inputs
 env               :   kitchen_sdoor_open-v3 
-task_type         :   "easy"            
+task_type         :   "easy"        
 seed              :   [0, 1, 2, 3 ,4, 5, 6, 7, 8, 9]
 
 pixel_based       :   True                  # pixel based (True) or state based (False) experiment
@@ -30,6 +30,7 @@ proprio           :   0
 
 # environment related kwargs
 env_kwargs:
+    agent_ago     :   True
     env_name      :   ${env}                
     device        :   ${device}               
     image_width   :   256
