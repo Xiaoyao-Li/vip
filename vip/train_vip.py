@@ -19,7 +19,7 @@ from vip.utils import utils
 from vip.utils.data_loaders import VIPBuffer
 from vip.utils.logger import Logger
 import time
-
+import datetime
 torch.backends.cudnn.benchmark = True
 
 
@@ -137,6 +137,7 @@ class Workspace:
 def main(cfg):
     # from train_vip import Workspace as W
     root_dir = Path.cwd()
+    cfg.experiment = f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}-{cfg.experiment}'
     workspace = Workspace(cfg)
 
     snapshot = root_dir / 'snapshot.pt'
