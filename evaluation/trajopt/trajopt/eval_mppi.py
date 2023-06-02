@@ -67,6 +67,7 @@ def main_worker(cfg: DictConfig):
     env_kwargs = cfg.env_kwargs
     OmegaConf.set_struct(env_kwargs, False)
     # construct env
+    env_kwargs.exp_dir = cfg.exp_dir
     if cfg.slurm:
         env_kwargs.env_xml_path = env_kwargs['env_xml_path_slurm']
         env_kwargs.env_cfg_path = env_kwargs['env_cfg_path_slurm']

@@ -10,6 +10,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 import torchvision
+from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 COMMON_TRAIN_FORMAT = [('frame', 'F', 'int'), ('step', 'S', 'int'),
@@ -131,6 +132,7 @@ class Logger(object):
         self._eval_mg = MetersGroup(log_dir / 'eval.csv',
                                     formating=COMMON_EVAL_FORMAT)
         if use_tb:
+            
             self._sw = SummaryWriter(str(log_dir / 'tb'))
         else:
             wandb.init(project=cfg.wandbproject, entity=cfg.wandbuser, name=cfg.experiment)

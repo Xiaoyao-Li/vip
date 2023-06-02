@@ -398,6 +398,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 # NOTE: custom files and folders
+dummy_dataset/
 vipoutput/
 outputs/
 *.egg-info

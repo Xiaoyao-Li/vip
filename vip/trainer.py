@@ -55,8 +55,12 @@ class Trainer():
         l1loss = torch.linalg.norm(alles, ord=1, dim=-1).mean()
         metrics['l2loss'] = l2loss.item()
         metrics['l1loss'] = l1loss.item()
+        # NOTE: AttributeError: 'VIP' object has no attribute 'module' 
+        # here and comment out the following lines change using model.l2weight and model.l1weight
         full_loss += model.module.l2weight * l2loss
         full_loss += model.module.l1weight * l1loss
+        # full_loss += model.l2weight * l2loss
+        # full_loss += model.l1weight * l1loss
         t3 = time.time()
 
         ## VIP Loss 

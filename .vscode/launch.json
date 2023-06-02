@@ -4,16 +4,29 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     
+    // "configurations": [
+    //     {
+    //         "name": "Python: Current File",
+    //         "type": "python",
+    //         "request": "launch",
+    //         "program": "./evaluation/trajopt/trajopt/eval_mppi.py",
+    //         "console": "integratedTerminal",
+    //         "justMyCode": true,
+    //         "args": ["env=kitchen_ldoor_open-v3", "embedding=vip",
+    //             "camera=default", "exp_name=debug"]
+    //     }
+    // ]
+   
     "configurations": [
         {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "./evaluation/trajopt/trajopt/eval_mppi.py",
+            "program": "./vip/train_vip.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["env=kitchen_ldoor_open-v3", "embedding=vip",
-                "camera=default", "exp_name=debug"]
+            "args": ["--config-name=config_vip_epickitchen", "dataset=epic-kitchen", 
+            "datapath=/mnt/seagate12t/EPIC-KITCHEN/EPIC-KITCHEN"]
         }
     ]
 

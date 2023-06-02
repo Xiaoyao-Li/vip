@@ -57,7 +57,7 @@ def _get_embedding(embedding_name='resnet50', load_path="", *args, **kwargs):
     return model, embedding_dim
 
 def env_constructor(env_name, env_xml_path, env_cfg_path, demo_basedir,
-                    agent_ago,
+                    agent_ago, exp_dir,
                     device='cuda', image_width=256, image_height=256,
                     camera_name=None, embedding_name='resnet50', pixel_based=True,
                     embedding_reward=True,
@@ -71,7 +71,8 @@ def env_constructor(env_name, env_xml_path, env_cfg_path, demo_basedir,
         env = MuJoCoPixelObs(env, width=image_width, height=image_height, 
                            camera_name=camera_name, device_id=render_gpu_id)
         ## Wrapper which encodes state in pretrained model (additionally compute reward)
-        env = StateEmbedding(env, agent_ago=agent_ago, demo_basedir=demo_basedir, embedding_name=embedding_name, device=device, 
+        env = StateEmbedding(env, agent_ago=agent_ago, demo_basedir=demo_basedir, exp_dir=exp_dir,
+                             embedding_name=embedding_name, device=device, 
                              load_path=load_path, proprio=proprio, camera_name=camera_name,
                              env_name=env_name, pixel_based=pixel_based, 
                              embedding_reward=embedding_reward,
@@ -103,13 +104,14 @@ class StateEmbedding(gym.ObservationWrapper):
         device (str, 'cuda'): where to allocate the model.
 
     """
-    def __init__(self, env, demo_basedir, agent_ago, # TODO: add agent_ago params
+    def __init__(self, env, demo_basedir, agent_ago, exp_dir,# TODO: add agent_ago params
                  embedding_name=None, device='cuda', load_path="", checkpoint="", proprio=0,
                  camera_name=None, env_name=None, pixel_based=True, embedding_reward=False,
                  goal_timestep=49, init_timestep=0,):
         gym.ObservationWrapper.__init__(self, env)
         
         self.agent_ago = agent_ago
+        self.exp_dir = exp_dir
 
         self.env_name = env_name 
         self.cameras = [camera_name]
@@ -202,15 +204,16 @@ class StateEmbedding(gym.ObservationWrapper):
                     logger.info(f"Using agent_ago={self.agent_ago} for goal embedding")
                     video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}_agentago']
                 else:
-                    logger.info(f"Using agent_ago={self.agent_ago} for goal embedding")
-                    video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}']
+                    logger.info(f"Using agent_ago={self.agent_ago} for goal embedding, but using agent_ago==True goal")
+                    # video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}']
+                    video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}_agentago']
                 num_vid = len(video_paths)
                 end_goals = [] 
                 assert num_vid == 1, "Only one video path supported for now"
                 for i in range(num_vid):
                     vid = f"{video_paths[i]}"
                     img = Image.open(f"{vid}/{self.goal_timestep}.png")
-                    cur_dir = os.getcwd() 
+                    cur_dir = self.exp_dir
                     img.save(f"{cur_dir}/goal_image_{camera}.png") # save goal image
                     end_goals.append(img)
 
