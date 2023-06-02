@@ -19,9 +19,7 @@ for env in "${kitchen_env[@]}"
 do  
     echo "embedding: ${embedding} | task: ${env}"
     python ./evaluation/trajopt/trajopt/eval_mppi.py \
-        env=kitchen_${env}-v3 embedding=${embedding} camera=${camera} \
-        exp_name=${embedding}-agentago@${env}@${camera} \
-        env_kwargs.agent_ago=False
+        env=kitchen_${env}-v3 embedding=${embedding} camera=${camera}
 done
 
 
