@@ -22,4 +22,4 @@
 name=$1
 agentago=$2
 
-python train_vip.py --config_name=config_vip_epickitchen experiment=$name agentago=$agentago dataset=epic-kitchen datapath=/scratch/generalvision/EgoCentric/EPIC-KITCHEN
+python train_vip.py --config-name=config_vip_epickitchen experiment=$name agentago=$agentago dataset=epic-kitchen datapath=/scratch/generalvision/EgoCentric/EPIC-KITCHEN
