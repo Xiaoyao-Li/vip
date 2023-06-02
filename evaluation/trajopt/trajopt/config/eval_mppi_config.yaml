@@ -18,7 +18,7 @@ slurm             :   False
 
 # general inputs
 env               :   kitchen_sdoor_open-v3 
-task_type         :   "easy"            
+task_type         :   "easy"        
 seed              :   [0, 1, 2, 3 ,4, 5, 6, 7, 8, 9]
 
 pixel_based       :   True                  # pixel based (True) or state based (False) experiment
@@ -30,6 +30,7 @@ proprio           :   0
 
 # environment related kwargs
 env_kwargs:
+    agent_ago     :   True
     env_name      :   ${env}                
     device        :   ${device}               
     image_width   :   256
@@ -41,21 +42,22 @@ env_kwargs:
     proprio       :   ${proprio} 
     embedding_reward: ${embedding_reward} 
     goal_timestep : 49
-    init_timestep : 0
-    demo_basedir_local : '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/dataset'
-    demo_basedir_slurm : '/home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/dataset'
-    env_xml_path_local : '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml'
-    env_xml_path_slurm : '/home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml'
-    env_cfg_path_local : '/home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config'
-    env_cfg_path_slurm : '/home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config'
+    init_timestep : 20
+    demo_basedir_local: /home/puhao/dev/MAH/CodeRepo/vip/evaluation/dataset
+    demo_basedir_slurm: /home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/dataset
+    env_xml_path_local: /home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml
+    env_xml_path_slurm: /home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.xml
+    env_cfg_path_local: /home/puhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config
+    env_cfg_path_slurm: /home/lipuhao/dev/MAH/CodeRepo/vip/evaluation/trajopt/trajopt/mj_envs/envs/relay_kitchen/assets/franka_kitchen.config
+
 
 # RL parameters (all params related to MPPI.)
 H_total           :       50
 num_traj          :       1
 num_iter          :       1
 plan_horizon      :       12 
-paths_per_cpu     :       16 
-num_cpu           :       2
+paths_per_cpu     :       8
+num_cpu           :       4
 filter:
     beta_0: 0.25
     beta_1: 0.8

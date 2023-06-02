@@ -25,6 +25,8 @@ import os
 import sys 
 from trajopt.envs.gym_env import GymEnv
 
+from loguru import logger
+
 def init(module, weight_init, bias_init, gain=1):
     weight_init(module.weight.data, gain=gain)
     bias_init(module.bias.data)
@@ -55,6 +57,7 @@ def _get_embedding(embedding_name='resnet50', load_path="", *args, **kwargs):
     return model, embedding_dim
 
 def env_constructor(env_name, env_xml_path, env_cfg_path, demo_basedir,
+                    agent_ago, exp_dir,
                     device='cuda', image_width=256, image_height=256,
                     camera_name=None, embedding_name='resnet50', pixel_based=True,
                     embedding_reward=True,
@@ -68,7 +71,8 @@ def env_constructor(env_name, env_xml_path, env_cfg_path, demo_basedir,
         env = MuJoCoPixelObs(env, width=image_width, height=image_height, 
                            camera_name=camera_name, device_id=render_gpu_id)
         ## Wrapper which encodes state in pretrained model (additionally compute reward)
-        env = StateEmbedding(env, demo_basedir=demo_basedir, embedding_name=embedding_name, device=device, 
+        env = StateEmbedding(env, agent_ago=agent_ago, demo_basedir=demo_basedir, exp_dir=exp_dir,
+                             embedding_name=embedding_name, device=device, 
                              load_path=load_path, proprio=proprio, camera_name=camera_name,
                              env_name=env_name, pixel_based=pixel_based, 
                              embedding_reward=embedding_reward,
@@ -100,11 +104,14 @@ class StateEmbedding(gym.ObservationWrapper):
         device (str, 'cuda'): where to allocate the model.
 
     """
-    def __init__(self, env, demo_basedir, embedding_name=None, device='cuda', load_path="", checkpoint="",
-      proprio=0,
-      camera_name=None, env_name=None, pixel_based=True, embedding_reward=False,
-      goal_timestep=49, init_timestep=0):
+    def __init__(self, env, demo_basedir, agent_ago, exp_dir,# TODO: add agent_ago params
+                 embedding_name=None, device='cuda', load_path="", checkpoint="", proprio=0,
+                 camera_name=None, env_name=None, pixel_based=True, embedding_reward=False,
+                 goal_timestep=49, init_timestep=0,):
         gym.ObservationWrapper.__init__(self, env)
+        
+        self.agent_ago = agent_ago
+        self.exp_dir = exp_dir
 
         self.env_name = env_name 
         self.cameras = [camera_name]
@@ -133,7 +140,7 @@ class StateEmbedding(gym.ObservationWrapper):
             embedding = rep
             self.transforms = T.Compose([T.Resize(256),
                         T.CenterCrop(224),
-                        T.ToTensor()]) # ToTensor() divides by 255        
+                        T.ToTensor()]) # ToTensor() divides by 255
         elif load_path == "clip":
             import clip
             model, cliptransforms = clip.load("RN50", device="cuda")
@@ -193,22 +200,41 @@ class StateEmbedding(gym.ObservationWrapper):
                         self.init_state[key] = demo.sol_state[init_timestep][key]
                     self.init_state['env_timestep'] = init_timestep + 1 
 
-                video_paths = [demopath + f'/{camera}']
+                if self.agent_ago:
+                    logger.info(f"Using agent_ago={self.agent_ago} for goal embedding")
+                    video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}_agentago']
+                else:
+                    logger.info(f"Using agent_ago={self.agent_ago} for goal embedding, but using agent_ago==True goal")
+                    # video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}']
+                    video_paths = [os.path.join(demo_basedir, demopath) + f'/{camera}_agentago']
                 num_vid = len(video_paths)
                 end_goals = [] 
+                assert num_vid == 1, "Only one video path supported for now"
                 for i in range(num_vid):
                     vid = f"{video_paths[i]}"
                     img = Image.open(f"{vid}/{self.goal_timestep}.png")
-                    cur_dir = os.getcwd() 
+                    cur_dir = self.exp_dir
                     img.save(f"{cur_dir}/goal_image_{camera}.png") # save goal image
                     end_goals.append(img)
-                
+
                 # hack to get when there is only one goal image working
                 if len(end_goals) == 1:
                     end_goals.append(end_goals[-1])
                 
                 goal_embedding = self.encode_batch(end_goals)
                 self.goal_embedding[camera] = goal_embedding.mean(axis=0) 
+
+    def _do_transforms(self, observation):
+        if self.embedding is not None and len(observation.shape) > 1:
+            if isinstance(observation, np.ndarray):
+                o = Image.fromarray(observation.astype(np.uint8))
+
+            inp = self.transforms(o).reshape(3, 224, 224)
+            if  "vip" in self.load_path or "r3m" in self.load_path:
+                inp *= 255.0
+            # inp = inp.to(self.device)
+        return np.array(inp)
+
 
     def observation(self, observation):
         ### INPUT SHOULD BE [0,255]
@@ -277,22 +303,25 @@ class StateEmbedding(gym.ObservationWrapper):
         self.start_finetune = True
     
     def step(self, action):
+        # import time
+        # st = time.time()
         observation, reward, done, info = self.env.step(action) 
+        # logger.info(f'step: {time.time()-st}')
+        # NOTE: can comment the following 2 lines to improve speed
         # obs_embedding = self.observation(observation)
         # info['obs_embedding'] = obs_embedding 
         if self.embedding_reward:
             rewards = []
             # Note: only single camera evaluation is supported 
             for camera in self.cameras:
-                import time
-                st = time.time()
                 img_camera = self.env.get_image(camera_name=camera)
-                # print(f'render: {time.time()-st}')
-                obs_embedding_camera = self.observation(img_camera)
-                # print(f'net: {time.time()-st}')
-                obs_embedding_camera = obs_embedding_camera if self.proprio == 0 else obs_embedding_camera[:-self.proprio]
-                reward_camera = -np.linalg.norm(obs_embedding_camera-self.goal_embedding[camera])
-                rewards.append(reward_camera) 
+                # NOTE: can comment the following 4 lines to improve speed
+                # obs_embedding_camera = self.observation(img_camera)
+                # obs_embedding_camera = obs_embedding_camera if self.proprio == 0 else obs_embedding_camera[:-self.proprio]
+                # reward_camera = -np.linalg.norm(obs_embedding_camera-self.goal_embedding[camera])
+                # rewards.append(reward_camera) 
+
+                img_camera = self._do_transforms(img_camera)
             # some state-based info for evaluating learned reward func.
             if 'end_effector' in info['obs_dict']:
                 info['obs_dict']['ee_error'] = np.linalg.norm(self.goal_end_effector-info['obs_dict']['end_effector'])
@@ -303,13 +332,13 @@ class StateEmbedding(gym.ObservationWrapper):
             if 'objs_jnt' in info['obs_dict']:
                 info['obs_dict']['objs_error'] = np.linalg.norm(self.goal_object_pose-info['obs_dict']['objs_jnt'])
             
-            reward = min(rewards)
+            # reward = min(rewards)
         if not self.pixel_based:
             state = self.env.unwrapped.get_obs()
         else: 
-            state = np.zeros(1024)
-
-        return state, reward, done, info
+            state = np.zeros(self.embedding_dim)
+        
+        return state, reward, done, info, img_camera
     
     def reset(self):
         observation = self.env.reset()

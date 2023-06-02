@@ -29,8 +29,10 @@ import random
 
 
 def get_ind(vid, index, ds="ego4d"):
-    if ds == "ego4d":
+    if ds in ["ego4d"]:
         return torchvision.io.read_image(f"{vid}{index:06}.jpg")
+    elif ds in ['epic-kitchen']:
+        return torchvision.io.read_image(f"{vid}/frame_{index:010d}.jpg")
     else:
         try:
             return torchvision.io.read_image(f"{vid}/{index}.jpg")
@@ -39,7 +41,9 @@ def get_ind(vid, index, ds="ego4d"):
 
 ## Data Loader for VIP
 class VIPBuffer(IterableDataset):
-    def __init__(self, datasource='ego4d', datapath=None, num_workers=10, doaug = "none"):
+    def __init__(self, datasource='ego4d', datapath=None, num_workers=4, 
+                 doaug = "none", agentago=False
+                 ):
         self._num_workers = max(1, num_workers)
         self.datasource = datasource
         self.datapath = datapath
@@ -64,6 +68,13 @@ class VIPBuffer(IterableDataset):
             self.manifest = pd.read_csv(f"{self.datapath}/manifest.csv")
             print(self.manifest)
             self.ego4dlen = len(self.manifest)
+        elif self.datasource in ['epic-kitchen']:
+            print("Load Epic-Kitchen Dataset")
+            self.manifest = pd.read_csv(f"{self.datapath}/EPIC100_annotations.csv")
+            print(self.manifest)
+            print(f'keys: {self.manifest.columns}')
+            self.epiclen = len(self.manifest)
+            self.agentago = agentago
 
     def _sample(self):
         # Sample a video from datasource
@@ -72,6 +83,17 @@ class VIPBuffer(IterableDataset):
             m = self.manifest.iloc[vidid]
             vidlen = m["len"]
             vid = m["path"]
+        elif self.datasource == 'epic-kitchen':
+            vidid = np.random.randint(0, self.epiclen)
+            m = self.manifest.iloc[vidid]
+            part_id = m['participant_id']
+            video_id = m['video_id']
+            if self.agentago:
+                vid = f"{self.datapath}/{part_id}/agentago_frames/{video_id}"
+            else:
+                vid = f"{self.datapath}/{part_id}/rgb_frames/{video_id}"
+            start_frame = m['start_frame']
+            stop_frame = m['stop_frame']
         else: 
             video_paths = glob.glob(f"{self.datapath}/[0-9]*")
             num_vid = len(video_paths)
@@ -85,14 +107,19 @@ class VIPBuffer(IterableDataset):
                 vidlen = len(glob.glob(f'{vid}/*.jpg'))
 
         # Sample (o_t, o_k, o_k+1, o_T) for VIP training
-        start_ind = np.random.randint(0, vidlen-2)  
-        end_ind = np.random.randint(start_ind+1, vidlen)
-
-        s0_ind_vip = np.random.randint(start_ind, end_ind)
-        s1_ind_vip = min(s0_ind_vip+1, end_ind)
-        
-        # Self-supervised reward (this is always -1)
-        reward = float(s0_ind_vip == end_ind) - 1
+        if self.datasource in ['epic-kitchen']:
+            start_ind = np.random.randint(start_frame, stop_frame-2)
+            end_ind = np.random.randint(start_ind+1, stop_frame)
+            s0_ind_vip = np.random.randint(start_ind, end_ind)
+            s1_ind_vip = min(s0_ind_vip+1, end_ind)
+            reward = float(s0_ind_vip == end_ind) - 1
+        else:
+            start_ind = np.random.randint(0, vidlen-2)  
+            end_ind = np.random.randint(start_ind+1, vidlen)
+            s0_ind_vip = np.random.randint(start_ind, end_ind)
+            s1_ind_vip = min(s0_ind_vip+1, end_ind)
+            # Self-supervised reward (this is always -1)
+            reward = float(s0_ind_vip == end_ind) - 1
 
         if self.doaug == "rctraj":
             ### Encode each image in the video at once the same way

@@ -33,22 +33,25 @@ def do_env_rollout(env, start_state, act_list, env_kwargs=None):
         rewards = []
         env_infos = []
         states = []
+        imgs_camera = []
 
         for k in range(H):
             obs.append(e.get_obs())
             act.append(act_list[i][k])
             env_infos.append(e.get_env_infos())
             states.append(e.get_env_state())
-            s, r, d, ifo = e.step(act[-1])
+            s, r, d, ifo, img_camera = e.step(act[-1])
             rewards.append(r)
+            imgs_camera.append(img_camera)
 
         path = dict(observations=np.array(obs),
                     actions=np.array(act),
                     rewards=np.array(rewards),
                     env_infos=tensor_utils.stack_tensor_dict_list(env_infos),
-                    states=states)
+                    states=states,
+                    imgs_camera=np.array(imgs_camera))
         paths.append(path)
-
+    
     return paths
 
 
@@ -71,6 +74,7 @@ def generate_perturbed_actions(base_act, filter_coefs):
     """
     sigma, beta_0, beta_1, beta_2 = filter_coefs
     eps = np.random.normal(loc=0, scale=1.0, size=base_act.shape) * sigma
+    # NOTE: do this to smooth sample action
     for i in range(2, eps.shape[0]):
         eps[i] = beta_0*eps[i] + beta_1*eps[i-1] + beta_2*eps[i-2]
     return base_act + eps
@@ -83,7 +87,7 @@ def generate_paths(env, start_state, N, base_act, filter_coefs,
     then do rollouts with generated actions
     set seed inside this function for multiprocessing
     """
-    np.random.seed(base_seed)
+    # np.random.seed(base_seed)
     act_list = []
     for i in range(N):
         act = generate_perturbed_actions(base_act, filter_coefs)
@@ -118,5 +122,5 @@ def gather_paths_parallel(env, start_state, base_act, filter_coefs, base_seed,
     for result in results:
         for path in result:
             paths.append(path)
-
+    
     return paths

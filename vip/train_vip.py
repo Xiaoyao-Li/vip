@@ -19,7 +19,7 @@ from vip.utils import utils
 from vip.utils.data_loaders import VIPBuffer
 from vip.utils.logger import Logger
 import time
-
+import datetime
 torch.backends.cudnn.benchmark = True
 
 
@@ -27,6 +27,8 @@ def make_network(cfg):
     model =  hydra.utils.instantiate(cfg)
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     model = torch.nn.DataParallel(model)
+    # if torch.cuda.device_count() > 1:
+    #     model = torch.nn.DataParallel(model)
     return model.cuda()
 
 class Workspace:
@@ -41,8 +43,12 @@ class Workspace:
             self.setup()
 
         print("Creating Dataloader")
-        train_iterable = VIPBuffer(datasource=self.cfg.dataset, datapath=self.cfg.datapath, num_workers=self.cfg.num_workers, doaug=self.cfg.doaug)
-        val_iterable = VIPBuffer(datasource=self.cfg.dataset, datapath=self.cfg.datapath, num_workers=self.cfg.num_workers, doaug=0)
+        train_iterable = VIPBuffer(datasource=self.cfg.dataset, datapath=self.cfg.datapath, 
+                                   num_workers=self.cfg.num_workers, doaug=self.cfg.doaug,
+                                   agentago=self.cfg.agentago)
+        val_iterable = VIPBuffer(datasource=self.cfg.dataset, datapath=self.cfg.datapath, 
+                                 num_workers=self.cfg.num_workers, doaug=0,
+                                 agentago=self.cfg.agentago)
 
         self.train_loader = iter(torch.utils.data.DataLoader(train_iterable,
                                          batch_size=self.cfg.batch_size,
@@ -67,7 +73,7 @@ class Workspace:
 
     def setup(self):
         # create logger
-        self.logger = Logger(self.work_dir, use_tb=False, cfg=self.cfg)
+        self.logger = Logger(self.work_dir, use_tb=self.cfg.use_tb, cfg=self.cfg)
 
     @property
     def global_step(self):
@@ -88,23 +94,24 @@ class Workspace:
         print("Begin Training")
         while train_until_step(self.global_step):
             ## Sample Batch
-            t0 = time.time()
+            # t0 = time.time()
             batch_f, batch_rewards = next(self.train_loader)
-            t1 = time.time()
+            # t1 = time.time()
             metrics, st = trainer.update(self.model, (batch_f.cuda(), batch_rewards), self.global_step)
-            t2 = time.time()
+            # t2 = time.time()
             self.logger.log_metrics(metrics, self.global_frame, ty='train')
 
             if self.global_step % 10 == 0:
-                print(self.global_step, metrics)
-                print(f'Sample time {t1-t0}, Update time {t2-t1}')
+                print(f'TRAIN STEPS: {self.global_step}:')
+                print(f'METRICS: {metrics}')
                 
             if eval_every_step(self.global_step):
                 with torch.no_grad():
                     batch_f, batch_rewards = next(self.val_loader)
                     metrics, st = trainer.update(self.model, (batch_f.cuda(), batch_rewards), self.global_step, eval=True)
                     self.logger.log_metrics(metrics, self.global_frame, ty='eval')
-                    print("EVAL", self.global_step, metrics)
+                    print("EVAL: ", self.global_step)
+                    print(f'metrics: {metrics}')
 
                     self.save_snapshot()
             self._global_step += 1
@@ -128,9 +135,10 @@ class Workspace:
 
 @hydra.main(config_path='cfgs', config_name='config_vip')
 def main(cfg):
-    from train_vip import Workspace as W
+    # from train_vip import Workspace as W
     root_dir = Path.cwd()
-    workspace = W(cfg)
+    cfg.experiment = f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}-{cfg.experiment}'
+    workspace = Workspace(cfg)
 
     snapshot = root_dir / 'snapshot.pt'
     if snapshot.exists():
