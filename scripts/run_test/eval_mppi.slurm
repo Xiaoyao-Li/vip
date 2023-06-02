@@ -17,4 +17,4 @@
 #SBATCH -o "/home/lipuhao/dev/MAH/CodeRepo/vip/outputs/slurm/%x.%j.out"
 #SBATCH -e "/home/lipuhao/dev/MAH/CodeRepo/vip/outputs/slurm/%x.%j.err"
 
-srun scripts/run_test/eval_mppi.sh vip
+/bin/bash scripts/run_test/eval_mppi.sh vip
