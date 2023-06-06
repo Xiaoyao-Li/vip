@@ -32,7 +32,13 @@ def get_ind(vid, index, ds="ego4d"):
     if ds in ["ego4d"]:
         return torchvision.io.read_image(f"{vid}{index:06}.jpg")
     elif ds in ['epic-kitchen']:
-        return torchvision.io.read_image(f"{vid}/frame_{index:010d}.jpg")
+        try:
+            return torchvision.io.read_image(f"{vid}/frame_{index:010d}.jpg")
+        except Exception as e:
+            print(e)
+            print(f"{vid}/frame_{index:010d}.jpg")
+            raise Exception("Error in epic-kitchen loader")
+        # return torchvision.io.read_image(f"{vid}/frame_{index:010d}.jpg")
     else:
         try:
             return torchvision.io.read_image(f"{vid}/{index}.jpg")
