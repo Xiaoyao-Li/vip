@@ -37,7 +37,7 @@ def get_ind(vid, index, ds="ego4d"):
         except Exception as e:
             print(e)
             print(f"{vid}/frame_{index:010d}.jpg")
-            raise Exception("Error in epic-kitchen loader")
+            raise Exception(f"Error in {vid}/frame_{index:010d}.jpg")
         # return torchvision.io.read_image(f"{vid}/frame_{index:010d}.jpg")
     else:
         try:
