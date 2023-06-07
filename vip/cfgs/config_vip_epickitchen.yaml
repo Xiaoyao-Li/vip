@@ -9,7 +9,7 @@ load_snap: ""
 
 # replay buffer
 num_workers: 8
-batch_size: 32 
+batch_size: 64 
 train_steps: 2000000
 eval_freq: 20000
 
@@ -18,7 +18,7 @@ seed: 42
 device: cuda
 
 # experiment
-use_tb: True
+use_tb: False
 wandbproject: VIPretrain
 experiment: epic
 wandbuser: lipuhao
