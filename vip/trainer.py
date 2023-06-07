@@ -21,6 +21,8 @@ def do_nothing(x): return x
 class Trainer():
     def __init__(self, eval_freq):
         self.eval_freq = eval_freq
+        self.max_loss = 2.6
+        self.min_loss = 0.0
 
     def update(self, model, batch, step, eval=False):
         t0 = time.time()
@@ -94,6 +96,7 @@ class Trainer():
 
         if not eval:
             model.module.encoder_opt.zero_grad()
+            full_loss = torch.clamp(full_loss, self.min_loss, self.max_loss)
             full_loss.backward()
             model.module.encoder_opt.step()
         t5 = time.time()    
